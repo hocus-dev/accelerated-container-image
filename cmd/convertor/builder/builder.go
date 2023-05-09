@@ -69,13 +69,17 @@ func NewOverlayBDBuilder(ctx context.Context, opt BuilderOptions) (Builder, erro
 	engineBase.workDir = opt.WorkDir
 	engineBase.oci = opt.OCI
 	engineBase.db = opt.DB
-
-	refspec, err := reference.Parse(opt.Ref)
-	if err != nil {
-		return nil, err
+	if strings.HasPrefix(opt.Ref, "local-directory:") {
+		engineBase.host = "local-directory"
+		engineBase.repository = strings.ReplaceAll(opt.TargetRef, "local-directory:", "")
+	} else {
+		refspec, err := reference.Parse(opt.Ref)
+		if err != nil {
+			return nil, err
+		}
+		engineBase.host = refspec.Hostname()
+		engineBase.repository = strings.TrimPrefix(refspec.Locator, engineBase.host+"/")
 	}
-	engineBase.host = refspec.Hostname()
-	engineBase.repository = strings.TrimPrefix(refspec.Locator, engineBase.host+"/")
 
 	var engine builderEngine
 	switch opt.Engine {
